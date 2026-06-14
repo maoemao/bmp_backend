@@ -1,0 +1,689 @@
+{
+  "info": {
+    "name": "BMP Backend API",
+    "description": "全业务审批系统API文档",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "用户登录，返回JWT token"
+          },
+          "response": []
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"张三\",\n  \"role\": \"EMPLOYEE\",\n  \"department\": \"IT部门\",\n  \"managerId\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "用户注册\n\n可选角色: EMPLOYEE, MANAGER, HR, FINANCE, DIRECTOR, ADMIN, IT, PURCHASING, CEO"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users",
+              "host": ["{{base_url}}"],
+              "path": ["users"]
+            },
+            "description": "获取所有用户列表（需要JWT认证）"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            },
+            "description": "根据ID获取用户详情"
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"李四\",\n  \"role\": \"EMPLOYEE\",\n  \"department\": \"财务部门\",\n  \"managerId\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users",
+              "host": ["{{base_url}}"],
+              "path": ["users"]
+            },
+            "description": "创建新用户"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"李四更新\",\n  \"department\": \"HR部门\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            },
+            "description": "更新用户信息"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            },
+            "description": "删除用户"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Subordinates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/subordinates/{{manager_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "subordinates", "{{manager_id}}"]
+            },
+            "description": "获取某经理的所有下属"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Users By Department",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/department/{{department}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "department", "{{department}}"]
+            },
+            "description": "按部门获取用户列表"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Approval",
+      "item": [
+        {
+          "name": "Get Approval List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/approval/list?type=LEAVE&status=PENDING&startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["approval", "list"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "LEAVE",
+                  "description": "申请类型: LEAVE, EXPENSE, PURCHASE"
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "description": "状态: COMPLETED, PENDING, REJECTED, CANCELLED, IN_PROGRESS"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "description": "开始日期"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "description": "结束日期"
+                },
+                {
+                  "key": "userId",
+                  "value": "",
+                  "description": "用户ID（可选）",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "获取审批列表，支持多种筛选条件"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Approval Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/approval/{{type}}/{{application_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["approval", "{{type}}", "{{application_id}}"]
+            },
+            "description": "获取单个申请的审批详情\n\ntype: LEAVE, EXPENSE, PURCHASE"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Purchase",
+      "item": [
+        {
+          "name": "Apply Purchase",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000,\n  \"description\": \"办公设备采购\",\n  \"supplier\": \"供应商A\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchase/apply",
+              "host": ["{{base_url}}"],
+              "path": ["purchase", "apply"]
+            },
+            "description": "提交采购申请"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Purchase List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/purchase",
+              "host": ["{{base_url}}"],
+              "path": ["purchase"]
+            },
+            "description": "获取采购申请列表"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Purchase By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/purchase/{{purchase_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["purchase", "{{purchase_id}}"]
+            },
+            "description": "获取单个采购申请详情"
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Purchase",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"同意采购\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchase/{{purchase_id}}/approve",
+              "host": ["{{base_url}}"],
+              "path": ["purchase", "{{purchase_id}}", "approve"]
+            },
+            "description": "批准采购申请"
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Purchase",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"预算不足，驳回申请\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchase/{{purchase_id}}/reject",
+              "host": ["{{base_url}}"],
+              "path": ["purchase", "{{purchase_id}}", "reject"]
+            },
+            "description": "拒绝采购申请"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Purchase",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/purchase/{{purchase_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["purchase", "{{purchase_id}}"]
+            },
+            "description": "取消采购申请"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Expense",
+      "item": [
+        {
+          "name": "Apply Expense",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1500,\n  \"description\": \"出差报销\",\n  \"receiptUrl\": \"https://example.com/receipt.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/expense/apply",
+              "host": ["{{base_url}}"],
+              "path": ["expense", "apply"]
+            },
+            "description": "提交报销申请"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Expense List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/expense",
+              "host": ["{{base_url}}"],
+              "path": ["expense"]
+            },
+            "description": "获取报销申请列表"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Expense By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/expense/{{expense_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["expense", "{{expense_id}}"]
+            },
+            "description": "获取单个报销申请详情"
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Expense",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"同意报销\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/expense/{{expense_id}}/approve",
+              "host": ["{{base_url}}"],
+              "path": ["expense", "{{expense_id}}", "approve"]
+            },
+            "description": "批准报销申请"
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Expense",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"票据不合规，驳回申请\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/expense/{{expense_id}}/reject",
+              "host": ["{{base_url}}"],
+              "path": ["expense", "{{expense_id}}", "reject"]
+            },
+            "description": "拒绝报销申请"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Expense",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/expense/{{expense_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["expense", "{{expense_id}}"]
+            },
+            "description": "取消报销申请"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Leave",
+      "item": [
+        {
+          "name": "Apply Leave",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2024-06-20\",\n  \"endDate\": \"2024-06-22\",\n  \"reason\": \"个人事务\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/leave/apply",
+              "host": ["{{base_url}}"],
+              "path": ["leave", "apply"]
+            },
+            "description": "提交请假申请"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Leave List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/leave",
+              "host": ["{{base_url}}"],
+              "path": ["leave"]
+            },
+            "description": "获取请假申请列表"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Leave By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/leave/{{leave_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["leave", "{{leave_id}}"]
+            },
+            "description": "获取单个请假申请详情"
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Leave",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"同意请假\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/leave/{{leave_id}}/approve",
+              "host": ["{{base_url}}"],
+              "path": ["leave", "{{leave_id}}", "approve"]
+            },
+            "description": "批准请假申请"
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Leave",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"项目紧急，暂无法请假\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/leave/{{leave_id}}/reject",
+              "host": ["{{base_url}}"],
+              "path": ["leave", "{{leave_id}}", "reject"]
+            },
+            "description": "拒绝请假申请"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Leave",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/leave/{{leave_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["leave", "{{leave_id}}"]
+            },
+            "description": "取消请假申请"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Config",
+      "item": [
+        {
+          "name": "Get All Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/config",
+              "host": ["{{base_url}}"],
+              "path": ["config"]
+            },
+            "description": "获取所有配置信息（部门、角色、请假类型、审批状态）"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Departments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/config/departments",
+              "host": ["{{base_url}}"],
+              "path": ["config", "departments"]
+            },
+            "description": "获取部门列表"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/config/roles",
+              "host": ["{{base_url}}"],
+              "path": ["config", "roles"]
+            },
+            "description": "获取角色列表（带中文标签）"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "user_id",
+      "value": ""
+    },
+    {
+      "key": "manager_id",
+      "value": ""
+    },
+    {
+      "key": "purchase_id",
+      "value": ""
+    },
+    {
+      "key": "expense_id",
+      "value": ""
+    },
+    {
+      "key": "leave_id",
+      "value": ""
+    },
+    {
+      "key": "application_id",
+      "value": ""
+    },
+    {
+      "key": "type",
+      "value": "LEAVE"
+    },
+    {
+      "key": "department",
+      "value": "IT部门"
+    }
+  ]
+}
