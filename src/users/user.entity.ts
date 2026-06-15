@@ -21,6 +21,7 @@ export enum Department {
   HR = 'HR部门',
   PURCHASING = '采购部门',
   EMPLOYEE = '普通员工部门',
+  HEADER = 'header部门',
 }
 
 @Entity('users')
