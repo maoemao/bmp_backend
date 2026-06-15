@@ -19,6 +19,7 @@ export enum Department {
   IT = 'IT部门',
   FINANCE = '财务部门',
   HR = 'HR部门',
+  PURCHASING = '采购部门',
   EMPLOYEE = '普通员工部门',
 }
 
