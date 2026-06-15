@@ -16,5 +16,23 @@ services:
       timeout: 10s
       retries: 3
 
+  app:
+    build: .
+    container_name: bmp_backend
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: bmp_user
+      DB_PASSWORD: bmp_password
+      DB_NAME: bmp_db
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres_data:

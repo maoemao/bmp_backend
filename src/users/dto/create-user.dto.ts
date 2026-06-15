@@ -6,9 +6,6 @@ export class CreateUserDto {
   email: string;
 
   @IsNotEmpty()
-  password: string;
-
-  @IsNotEmpty()
   name: string;
 
   @IsEnum(UserRole)
@@ -17,7 +14,4 @@ export class CreateUserDto {
 
   @IsOptional()
   department?: string;
-
-  @IsOptional()
-  managerId?: string;
 }

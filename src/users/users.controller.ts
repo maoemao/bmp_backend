@@ -1,8 +1,23 @@
-import { Controller, Get, Post, Body, Put, Delete, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Delete, Param, UseGuards, Request, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthGuard } from '@nestjs/passport';
+import { UserRole } from './user.entity';
+
+interface ChangePasswordDto {
+  oldPassword: string;
+  newPassword: string;
+}
+
+interface UserFilter {
+  email?: string;
+  name?: string;
+  id?: string;
+  managerId?: string;
+  department?: string;
+  role?: UserRole;
+}
 
 @Controller('users')
 @UseGuards(AuthGuard('jwt'))
@@ -10,9 +25,9 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get()
-  async findAll(@Request() req) {
+  async findAll(@Request() req, @Query() filter: UserFilter) {
     const currentUser = await this.usersService.findOneByEmail(req.user.email);
-    return this.usersService.findAll(currentUser);
+    return this.usersService.findAll(currentUser, filter);
   }
 
   @Get(':id')
@@ -31,6 +46,12 @@ export class UsersController {
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto, @Request() req) {
     const currentUser = await this.usersService.findOneByEmail(req.user.email);
     return this.usersService.update(id, updateUserDto, currentUser);
+  }
+
+  @Put(':id/change-password')
+  async changePassword(@Param('id') id: string, @Body() body: ChangePasswordDto, @Request() req) {
+    const currentUser = await this.usersService.findOneByEmail(req.user.email);
+    return this.usersService.changePassword(id, body.oldPassword, body.newPassword, currentUser);
   }
 
   @Delete(':id')

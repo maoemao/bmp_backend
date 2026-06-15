@@ -49,6 +49,9 @@ export class User {
   @Column({ name: 'manager_id', nullable: true })
   managerId: string;
 
+  @Column({ name: 'need_password_change', default: false })
+  needPasswordChange: boolean;
+
   @ManyToOne(() => User, (user) => user.subordinates)
   @JoinColumn({ name: 'manager_id' })
   manager: User;

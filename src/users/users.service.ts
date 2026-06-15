@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from './user.entity';
@@ -16,8 +16,18 @@ export interface UserResponse {
   department: string;
   managerId: string;
   manager?: UserResponse;
+  needPasswordChange: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface UserFilter {
+  email?: string;
+  name?: string;
+  id?: string;
+  managerId?: string;
+  department?: string;
+  role?: UserRole;
 }
 
 @Injectable()
@@ -54,28 +64,106 @@ export class UsersService {
       throw new ForbiddenException('You are not authorized to create users');
     }
 
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const managerId = await this.calculateManagerId(createUserDto.role, createUserDto.department);
+
+    const DEFAULT_PASSWORD = '123456';
+    const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
     const user = this.usersRepository.create({
       ...createUserDto,
       password: hashedPassword,
+      managerId,
+      needPasswordChange: true,
     });
     const savedUser = await this.usersRepository.save(user);
     return this.excludePassword(savedUser);
   }
 
-  async findAll(currentUser: User): Promise<UserResponse[]> {
-    if (!this.canViewAllUsers(currentUser)) {
-      const users = await this.usersRepository.find({
-        where: { id: currentUser.id },
-        relations: { manager: true },
-      });
-      return this.excludePasswordFromList(users);
+  private async calculateManagerId(role?: UserRole, department?: string): Promise<string | null> {
+    if (!role || !department) {
+      return null;
     }
-    const users = await this.usersRepository.find({ 
-      relations: { manager: true },
-    });
-    return this.excludePasswordFromList(users);
+
+    switch (role) {
+      case UserRole.EMPLOYEE:
+        return this.findDepartmentManager(department);
+      case UserRole.MANAGER:
+        return this.findDirector(department);
+      case UserRole.HR:
+      case UserRole.FINANCE:
+      case UserRole.PURCHASING:
+      case UserRole.IT:
+        return this.findDepartmentManager(department) || this.findDirector(department);
+      case UserRole.DIRECTOR:
+        return this.findCEO();
+      case UserRole.CEO:
+      case UserRole.ADMIN:
+        return null;
+      default:
+        return null;
+    }
   }
+
+  private async findDepartmentManager(department: string): Promise<string | null> {
+    const manager = await this.usersRepository.findOne({
+      where: { department, role: UserRole.MANAGER },
+    });
+    return manager?.id || null;
+  }
+
+  private async findDirector(department: string): Promise<string | null> {
+    const director = await this.usersRepository.findOne({
+      where: { department, role: UserRole.DIRECTOR },
+    });
+    if (director) {
+      return director.id;
+    }
+    const anyDirector = await this.usersRepository.findOne({
+      where: { role: UserRole.DIRECTOR },
+    });
+    return anyDirector?.id || null;
+  }
+
+  private async findCEO(): Promise<string | null> {
+    const ceo = await this.usersRepository.findOne({
+      where: { role: UserRole.CEO },
+    });
+    return ceo?.id || null;
+  }
+
+  async findAll(currentUser: User, filter?: UserFilter): Promise<UserResponse[]> {
+  const whereConditions: any = {};
+
+  if (filter) {
+    if (filter.id) {
+      whereConditions.id = filter.id;
+    }
+    if (filter.email) {
+      whereConditions.email = filter.email;
+    }
+    if (filter.name) {
+      whereConditions.name = filter.name;
+    }
+    if (filter.managerId !== undefined && filter.managerId !== '') {
+      whereConditions.managerId = filter.managerId ? filter.managerId : null;
+    }
+    if (filter.department) {
+      whereConditions.department = filter.department;
+    }
+    if (filter.role) {
+      whereConditions.role = filter.role;
+    }
+  }
+
+  if (!this.canViewAllUsers(currentUser)) {
+    whereConditions.id = currentUser.id;
+  }
+
+  const users = await this.usersRepository.find({
+    where: whereConditions,
+    relations: { manager: true },
+  });
+  return this.excludePasswordFromList(users);
+}
 
   async findOne(id: string, currentUser: User): Promise<UserResponse> {
     const user = await this.usersRepository.findOne({
@@ -111,7 +199,32 @@ export class UsersService {
       throw new ForbiddenException('You are not authorized to update this user');
     }
 
-    Object.assign(user, updateUserDto);
+    if (updateUserDto.managerId !== undefined) {
+      user.managerId = updateUserDto.managerId ? updateUserDto.managerId : null;
+    }
+
+    if (updateUserDto.email !== undefined) {
+      const existingUser = await this.usersRepository.findOne({
+        where: { email: updateUserDto.email },
+      });
+      if (existingUser && existingUser.id !== id) {
+        throw new ConflictException('Email already exists');
+      }
+      user.email = updateUserDto.email;
+    }
+
+    if (updateUserDto.name !== undefined) {
+      user.name = updateUserDto.name;
+    }
+
+    if (updateUserDto.role !== undefined) {
+      user.role = updateUserDto.role;
+    }
+
+    if (updateUserDto.department !== undefined) {
+      user.department = updateUserDto.department;
+    }
+
     user.updatedAt = new Date();
     const updatedUser = await this.usersRepository.save(user);
     return this.excludePassword(updatedUser);
@@ -132,6 +245,30 @@ export class UsersService {
     if (result.affected === 0) {
       throw new NotFoundException('User not found');
     }
+  }
+
+  async changePassword(userId: string, oldPassword: string, newPassword: string, currentUser: User): Promise<UserResponse> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (currentUser.id !== userId && currentUser.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('You are not authorized to change this user\'s password');
+    }
+
+    if (!(await bcrypt.compare(oldPassword, user.password))) {
+      throw new UnauthorizedException('Invalid old password');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.needPasswordChange = false;
+    user.updatedAt = new Date();
+    
+    const updatedUser = await this.usersRepository.save(user);
+    return this.excludePassword(updatedUser);
   }
 
   async findSubordinates(managerId: string, currentUser: User): Promise<UserResponse[]> {
