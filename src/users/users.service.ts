@@ -21,6 +21,10 @@ export interface UserResponse {
   updatedAt: Date;
 }
 
+export interface UserTreeResponse extends UserResponse {
+  children?: UserTreeResponse[];
+}
+
 export interface UserFilter {
   email?: string;
   name?: string;
@@ -107,7 +111,13 @@ export class UsersService {
     const manager = await this.usersRepository.findOne({
       where: { department, role: UserRole.MANAGER },
     });
-    return manager?.id || null;
+    if (manager) {
+      return manager.id;
+    }
+    const director = await this.usersRepository.findOne({
+      where: { department, role: UserRole.DIRECTOR },
+    });
+    return director?.id || null;
   }
 
   private async findDirector(department: string): Promise<string | null> {
@@ -271,12 +281,52 @@ export class UsersService {
     return this.excludePassword(updatedUser);
   }
 
-  async findSubordinates(managerId: string, currentUser: User): Promise<UserResponse[]> {
+  async findSubordinates(managerId: string, currentUser: User): Promise<UserTreeResponse[]> {
     if (!this.canViewSubordinates(currentUser, managerId)) {
       throw new ForbiddenException('You are not authorized to view subordinates');
     }
-    const users = await this.usersRepository.find({ where: { managerId } });
-    return this.excludePasswordFromList(users);
+    const allSubordinates = await this.findSubordinatesRecursively(managerId);
+    const subordinatesWithoutPassword = this.excludePasswordFromList(allSubordinates);
+    return this.buildTree(subordinatesWithoutPassword, managerId);
+  }
+
+  private async findSubordinatesRecursively(managerId: string): Promise<User[]> {
+    const directSubordinates = await this.usersRepository.find({ where: { managerId } });
+    
+    const allSubordinates: User[] = [...directSubordinates];
+    
+    for (const subordinate of directSubordinates) {
+      const nestedSubordinates = await this.findSubordinatesRecursively(subordinate.id);
+      allSubordinates.push(...nestedSubordinates);
+    }
+    
+    return allSubordinates;
+  }
+
+  private buildTree(users: UserResponse[], managerId: string): UserTreeResponse[] {
+    const map = new Map<string, UserTreeResponse>();
+    const result: UserTreeResponse[] = [];
+    
+    users.forEach(user => {
+      map.set(user.id, { ...user, children: [] });
+    });
+    
+    users.forEach(user => {
+      const treeNode = map.get(user.id)!;
+      if (user.managerId === managerId) {
+        result.push(treeNode);
+      } else {
+        const parent = map.get(user.managerId);
+        if (parent) {
+          if (!parent.children) {
+            parent.children = [];
+          }
+          parent.children.push(treeNode);
+        }
+      }
+    });
+    
+    return result;
   }
 
   async findByRole(role: UserRole): Promise<UserResponse[]> {
@@ -351,6 +401,7 @@ export class UsersService {
   }
 
   private canViewSubordinates(currentUser: User, managerId: string): boolean {
-    return currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.IT || currentUser.id === managerId;
+    const adminRoles = [UserRole.ADMIN, UserRole.CEO, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.HR, UserRole.FINANCE, UserRole.PURCHASING, UserRole.IT];
+    return adminRoles.includes(currentUser.role) || currentUser.id === managerId;
   }
 }

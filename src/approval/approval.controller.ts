@@ -14,12 +14,11 @@ export class ApprovalController {
     return this.approvalService.findAll(req.user.userId, req.user.role, query);
   }
 
-  @Get(':type/:id')
+  @Get(':id')
   async findOne(
-    @Param('type') type: ApplicationType,
     @Param('id') id: string,
     @Request() req,
   ) {
-    return this.approvalService.findOne(type, id, req.user.userId, req.user.role);
+    return this.approvalService.findById(id, req.user.userId, req.user.role);
   }
 }

@@ -100,6 +100,7 @@ export class ApprovalService {
           createdAt: app.createdAt,
           updatedAt: app.updatedAt,
           summary: `请假：${app.startDate} 至 ${app.endDate}`,
+          description: app.reason,
           currentNode: this.getLeaveCurrentNode(app.status),
         }));
         break;
@@ -130,6 +131,7 @@ export class ApprovalService {
           createdAt: app.createdAt,
           updatedAt: app.updatedAt,
           summary: `报销：${app.amount}元`,
+          description: app.description,
           currentNode: this.getExpenseCurrentNode(app.status, app.amount),
         }));
         break;
@@ -160,6 +162,7 @@ export class ApprovalService {
           createdAt: app.createdAt,
           updatedAt: app.updatedAt,
           summary: `采购：${app.amount}元 - ${app.description || ''}`,
+          description: app.description,
           currentNode: this.getPurchaseCurrentNode(app.status),
         }));
         break;
@@ -222,7 +225,75 @@ export class ApprovalService {
         type,
         status: application.status,
         applicant: application.applicant,
+        description: type === ApplicationType.LEAVE ? application.reason : application.description,
         content: this.getApplicationContent(type, application),
+        createdAt: application.createdAt,
+        updatedAt: application.updatedAt,
+      },
+      approvalNodes,
+      currentNode,
+      currentApprovers,
+      availableActions,
+      historyRecords,
+    };
+  }
+
+  async findById(id: string, currentUserId: string, currentUserRole: string) {
+    let application: any;
+    let applicationType: ApplicationType;
+
+    application = await this.leaveRepository.findOne({
+      where: { id },
+      relations: { applicant: true },
+    });
+    if (application) {
+      applicationType = ApplicationType.LEAVE;
+    }
+
+    if (!application) {
+      application = await this.expenseRepository.findOne({
+        where: { id },
+        relations: { applicant: true },
+      });
+      if (application) {
+        applicationType = ApplicationType.EXPENSE;
+      }
+    }
+
+    if (!application) {
+      application = await this.purchaseRepository.findOne({
+        where: { id },
+        relations: { applicant: true },
+      });
+      if (application) {
+        applicationType = ApplicationType.PURCHASE;
+      }
+    }
+
+    if (!application) {
+      throw new NotFoundException('Application not found');
+    }
+
+    const approvalRecords = await this.approvalRecordRepository.find({
+      where: { applicationId: id, applicationType },
+      relations: { approver: true },
+      order: { approvedAt: 'ASC' },
+    });
+
+    const approvalNodes = await this.buildApprovalNodes(applicationType, application, approvalRecords);
+    const currentNode = this.getCurrentNode(applicationType, application);
+    const currentApprovers = await this.getCurrentApprovers(applicationType, application);
+    const availableActions = await this.getAvailableActions(applicationType, application, currentUserId, currentUserRole);
+    const historyRecords = this.buildHistoryRecords(application, approvalRecords);
+
+    return {
+      application: {
+        id: application.id,
+        type: applicationType,
+        status: application.status,
+        applicant: application.applicant,
+        description: applicationType === ApplicationType.LEAVE ? application.reason : application.description,
+        content: this.getApplicationContent(applicationType, application),
         createdAt: application.createdAt,
         updatedAt: application.updatedAt,
       },
@@ -252,7 +323,14 @@ export class ApprovalService {
         case ApprovalStatusFilter.COMPLETED:
           return PurchaseStatus.COMPLETED;
         case ApprovalStatusFilter.PENDING:
-          return PurchaseStatus.PENDING;
+          return In([
+            PurchaseStatus.PENDING,
+            PurchaseStatus.DEPARTMENT_REVIEW,
+            PurchaseStatus.PURCHASING_REVIEW,
+            PurchaseStatus.DIRECTOR_REVIEW,
+            PurchaseStatus.CEO_REVIEW,
+            PurchaseStatus.FINANCE_REVIEW,
+          ]);
         case ApprovalStatusFilter.REJECTED:
           return PurchaseStatus.REJECTED;
         case ApprovalStatusFilter.CANCELLED:
@@ -337,11 +415,18 @@ export class ApprovalService {
 
     for (const config of nodeConfigs) {
       const record = records.find(r => r.approverRole === config.role);
+      const approver = record?.approver ? {
+        email: record.approver.email,
+        name: record.approver.name,
+        role: record.approver.role,
+        department: record.approver.department,
+        managerId: record.approver.managerId,
+      } : null;
       nodes.push({
         nodeName: config.name,
         nodeRole: config.role,
         status: record?.status || ApplicationStatus.PENDING,
-        approver: record?.approver || null,
+        approver,
         comment: record?.comment || null,
         approvedAt: record?.approvedAt || null,
       });
