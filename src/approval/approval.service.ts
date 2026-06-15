@@ -96,7 +96,12 @@ export class ApprovalService {
         applications = applications.map(app => ({
           id: app.id,
           status: app.status,
-          applicant: app.applicant,
+          applicant: {
+            id: app.applicant.id,
+            email: app.applicant.email,
+            name: app.applicant.name,
+            role: app.applicant.role,
+          },
           createdAt: app.createdAt,
           updatedAt: app.updatedAt,
           summary: `请假：${app.startDate} 至 ${app.endDate}`,
@@ -127,7 +132,12 @@ export class ApprovalService {
         applications = applications.map(app => ({
           id: app.id,
           status: app.status,
-          applicant: app.applicant,
+          applicant: {
+            id: app.applicant.id,
+            email: app.applicant.email,
+            name: app.applicant.name,
+            role: app.applicant.role,
+          },
           createdAt: app.createdAt,
           updatedAt: app.updatedAt,
           summary: `报销：${app.amount}元`,
@@ -158,7 +168,12 @@ export class ApprovalService {
         applications = applications.map(app => ({
           id: app.id,
           status: app.status,
-          applicant: app.applicant,
+          applicant: {
+            id: app.applicant.id,
+            email: app.applicant.email,
+            name: app.applicant.name,
+            role: app.applicant.role,
+          },
           createdAt: app.createdAt,
           updatedAt: app.updatedAt,
           summary: `采购：${app.amount}元 - ${app.description || ''}`,
@@ -224,7 +239,12 @@ export class ApprovalService {
         id: application.id,
         type,
         status: application.status,
-        applicant: application.applicant,
+        applicant: {
+          id: application.applicant.id,
+          email: application.applicant.email,
+          name: application.applicant.name,
+          role: application.applicant.role,
+        },
         description: type === ApplicationType.LEAVE ? application.reason : application.description,
         content: this.getApplicationContent(type, application),
         createdAt: application.createdAt,
@@ -291,7 +311,12 @@ export class ApprovalService {
         id: application.id,
         type: applicationType,
         status: application.status,
-        applicant: application.applicant,
+        applicant: {
+          id: application.applicant.id,
+          email: application.applicant.email,
+          name: application.applicant.name,
+          role: application.applicant.role,
+        },
         description: applicationType === ApplicationType.LEAVE ? application.reason : application.description,
         content: this.getApplicationContent(applicationType, application),
         createdAt: application.createdAt,
@@ -416,11 +441,10 @@ export class ApprovalService {
     for (const config of nodeConfigs) {
       const record = records.find(r => r.approverRole === config.role);
       const approver = record?.approver ? {
+        id: record.approver.id,
         email: record.approver.email,
         name: record.approver.name,
         role: record.approver.role,
-        department: record.approver.department,
-        managerId: record.approver.managerId,
       } : null;
       nodes.push({
         nodeName: config.name,
@@ -570,7 +594,12 @@ export class ApprovalService {
     const history: any[] = [
       {
         action: 'CREATE',
-        operator: application.applicant,
+        operator: {
+          id: application.applicant.id,
+          email: application.applicant.email,
+          name: application.applicant.name,
+          role: application.applicant.role,
+        },
         comment: null,
         operatedAt: application.createdAt,
       },
@@ -580,14 +609,24 @@ export class ApprovalService {
       if (record.status === ApplicationStatus.APPROVED) {
         history.push({
           action: 'APPROVE',
-          operator: record.approver,
+          operator: {
+            id: record.approver.id,
+            email: record.approver.email,
+            name: record.approver.name,
+            role: record.approver.role,
+          },
           comment: record.comment,
           operatedAt: record.approvedAt,
         });
       } else if (record.status === ApplicationStatus.REJECTED) {
         history.push({
           action: 'REJECT',
-          operator: record.approver,
+          operator: {
+            id: record.approver.id,
+            email: record.approver.email,
+            name: record.approver.name,
+            role: record.approver.role,
+          },
           comment: record.comment,
           operatedAt: record.approvedAt,
         });
